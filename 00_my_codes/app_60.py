@@ -1,11 +1,11 @@
 # Returning a list of stores
 # https://www.udemy.com/course/rest-api-flask-and-python/learn/lecture/5960118#notes
 
-from flask import Flask
+from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-store = [
+stores = [
     {
         'name': 'My Wonderful Store',
         'items': [{'name': 'My Item','price': 15.99}]
@@ -25,7 +25,7 @@ def get_store(name):
 # GET /store
 @app.route('/store')
 def get_stores():
-    pass
+    return jsonify({'stores': stores})
 
 # POST /store/<string:name>/item {name: , price:}
 @app.route('/store/<string:name>/item', methods=['POST'])
