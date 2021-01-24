@@ -8,15 +8,22 @@ items = []
 
 class Item(Resource):
     def get(self, name):
-        for item in items:
-            if item['name'] == name:
-                return item
+        # original codes
+        # for item in items:
+        #     if item['name'] == name:
+        #         return item
+        item = next(filter(lambda item: item["name"] == name, items), None)
 
-        return {"item": None}, 404
+        # return the 200 if the 'item' var is truthy (has value), else if falsy or None result.
+        return {"item": item}, 200 if item else 404
 
     def post(self, name):
+        # The condition will execute if the item name has already exists.
+        # Status code 400 means a 'BAD REQUEST'
+        if next(filter(lambda item: item["name"] == name, items), None):
+            return {"message" : "An item with the name '{}' already exists.".format(name)}, 400
+
         data = request.get_json()
-        # item = {"name": name, "price": 12.00}
         item = {"name": name, "price": data["price"]}
         items.append(item)
         return item, 201
