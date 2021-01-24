@@ -26,6 +26,7 @@ Failing command: ['/[some_paths_here]/virtualenvironment/bin/python3', '-Im', 'e
 1. python3 -m pip install --upgrade pip
 2. python3 -m pip install flask
 3. python3 -m pip install Flask-RESTful
+4. python3 -m pip install Flask-JWT
 
 ## Commands that are useful during the development
 
