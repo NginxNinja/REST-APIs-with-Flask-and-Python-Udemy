@@ -37,14 +37,24 @@ class Item(Resource):
         #--We are checking if the item already exists to another method because
         #--the 'get' method has the jwt token requirements to be accessed.
         #--The post method has not required a JWT.
-        if self.find_by_name(name):
+        if Item.find_by_name(name):
             return {"message" : "An item with the name '{}' already exists.".format(name)}, 400
-
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor()
 
         data = Item.parser.parse_args()
         item = {"name": name, "price": data["price"]}
+
+        # There could be an unforeseen problem in inserting data in the database.
+        try:
+            self.insert(item)
+        except:
+            return{"message": "An error occurred inserting the item."}, 500 # Internal Server Error
+
+        return item, 201
+
+    @classmethod
+    def insert(cls, item):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
 
         query = "INSERT INTO items VALUES (?, ?)"
         cursor.execute(query, (item['name'],item['price']))
@@ -52,12 +62,16 @@ class Item(Resource):
 
         connection.close()
 
-        return item, 201
-
     def delete(self, name):
-        global items # This will use the var 'items' list from above.
-        # This is going to re-create the 'items' list, excluding the var 'name' being called to delete.
-        items = list(filter(lambda item: item["name"] != name, items))
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "DELETE FROM items WHERE name = ?"
+        cursor.execute(query, (name,))
+        connection.commit()
+
+        connection.close()
+
         return {"message": "Item deleted."}
 
     def put(self, name):
@@ -66,14 +80,32 @@ class Item(Resource):
 
         data = Item.parser.parse_args()
 
-        item = next(filter(lambda item: item["name"] == name, items), None)
-        if item is None:
-            item = {"name": name, "price": data["price"]}
-            items.append(item)
-        else:
-            item.update(data)
+        item = self.find_by_name(name)
+        updated_item = {"name": name, "price": data["price"]}
 
-        return item
+        if item is None:
+            try:
+                self.insert(updated_item)
+            except:
+                return {"message": "An error occurred inserting the item."}, 500 # Internal Server Error
+        else:
+            try:
+                self.update(updated_item)
+            except:
+                return {"message": "An error occurred updating the item."}, 500 # Internal Server Error
+
+        return updated_item
+
+    @classmethod
+    def update(cls, item):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "UPDATE items SET price=? WHERE name=?"
+        cursor.execute(query, (item['price'], item['name']))
+        connection.commit() # You need to commit if you are going to do any changes to the DB table.
+
+        connection.close()
 
 class ItemList(Resource):
     def get(self):

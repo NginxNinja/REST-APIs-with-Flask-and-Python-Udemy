@@ -37,14 +37,24 @@ class Item(Resource):
         #--We are checking if the item already exists to another method because
         #--the 'get' method has the jwt token requirements to be accessed.
         #--The post method has not required a JWT.
-        if self.find_by_name(name):
+        if Item.find_by_name(name):
             return {"message" : "An item with the name '{}' already exists.".format(name)}, 400
-
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor()
 
         data = Item.parser.parse_args()
         item = {"name": name, "price": data["price"]}
+
+        # There could be an unforeseen problem in inserting data in the database.
+        try:
+            self.insert(item)
+        except:
+            return{"message": "An error occurred inserting the item."}, 500 # Internal Server Error
+
+        return item, 201
+
+    @classmethod
+    def insert(cls, item):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
 
         query = "INSERT INTO items VALUES (?, ?)"
         cursor.execute(query, (item['name'],item['price']))
@@ -52,12 +62,16 @@ class Item(Resource):
 
         connection.close()
 
-        return item, 201
-
     def delete(self, name):
-        global items # This will use the var 'items' list from above.
-        # This is going to re-create the 'items' list, excluding the var 'name' being called to delete.
-        items = list(filter(lambda item: item["name"] != name, items))
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "DELETE FROM items WHERE name = ?"
+        cursor.execute(query, (name,))
+        connection.commit()
+
+        connection.close()
+
         return {"message": "Item deleted."}
 
     def put(self, name):
